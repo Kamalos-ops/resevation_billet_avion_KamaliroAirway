@@ -1,0 +1,307 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Réservation billets d'avion - Demo</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    /* Petit style personnalisé - vous pouvez aussi l'extraire dans un fichier CSS */
+    body { background: linear-gradient(180deg,#eef2ff 0%, #ffffff 60%); }
+    .hero { padding: 3rem 0; }
+    .flight-card { transition: transform .12s ease; }
+    .flight-card:hover { transform: translateY(-4px); }
+    .logo { font-weight:700; letter-spacing:1px; }
+    footer { padding:1.5rem 0; text-align:center; color:#6c757d }
+  </style>
+</head>
+<body>
+  <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm">
+    <div class="container">
+      <a class="navbar-brand logo" href="#">AirReserve</a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navmenu">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navmenu">
+        <ul class="navbar-nav ms-auto">
+          <li class="nav-item"><a class="nav-link" href="#search">Rechercher</a></li>
+          <li class="nav-item"><a class="nav-link" href="#mes-reservations">Mes réservations</a></li>
+        </ul>
+      </div>
+    </div>
+  </nav>
+
+  <header class="hero">
+    <div class="container">
+      <div class="row align-items-center">
+        <div class="col-lg-7">
+          <h1 class="display-6">Réservez vos billets d'avion simplement</h1>
+          <p class="lead">Site statique de démonstration — recherche de vols, sélection et formulaire de réservation. Idéal pour héberger sur GitHub Pages.</p>
+        </div>
+        <div class="col-lg-5">
+          <div class="card p-3 shadow-sm">
+            <form id="searchForm" class="row g-2" onsubmit="return false;">
+              <div class="col-6">
+                <label class="form-label small">Départ</label>
+                <input id="from" class="form-control" placeholder="Ex: LUB (Lubumbashi)" required>
+              </div>
+              <div class="col-6">
+                <label class="form-label small">Arrivée</label>
+                <input id="to" class="form-control" placeholder="Ex: KIN (Kinshasa)" required>
+              </div>
+              <div class="col-6">
+                <label class="form-label small">Date</label>
+                <input id="date" type="date" class="form-control" required>
+              </div>
+              <div class="col-6">
+                <label class="form-label small">Passagers</label>
+                <input id="passengers" type="number" min="1" value="1" class="form-control">
+              </div>
+              <div class="col-12 text-end">
+                <button id="searchBtn" class="btn btn-primary">Rechercher</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="container mb-5">
+    <section id="results" class="mb-4">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <h4 class="m-0">Vols disponibles</h4>
+        <div>
+          <button id="clearStorage" class="btn btn-outline-secondary btn-sm">Effacer réservations locales</button>
+        </div>
+      </div>
+      <div id="flightsList" class="row gy-3"></div>
+    </section>
+
+    <section id="mes-reservations">
+      <h5>Mes réservations (stockées localement)</h5>
+      <div id="bookingsList" class="list-group"></div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="container">Demo statique • Hébergez ce dossier sur GitHub et activez GitHub Pages.</div>
+  </footer>
+
+  <!-- Modal réservation -->
+  <div class="modal fade" id="bookModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Réserver le vol</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+        </div>
+        <div class="modal-body">
+          <form id="bookingForm">
+            <input type="hidden" id="selectedFlightId">
+            <div class="mb-2">
+              <label class="form-label">Nom complet</label>
+              <input id="customerName" class="form-control" required>
+            </div>
+            <div class="mb-2">
+              <label class="form-label">Email</label>
+              <input id="customerEmail" type="email" class="form-control" required>
+            </div>
+            <div class="mb-2">
+              <label class="form-label">Téléphone</label>
+              <input id="customerPhone" class="form-control">
+            </div>
+            <div class="form-text mb-2">Donnée de démonstration — aucune vraie transaction.</div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button id="confirmBooking" class="btn btn-primary">Confirmer la réservation</button>
+          <button class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    // Mock de vols (dans une app réelle vous pousserez ces données depuis une API)
+    const mockFlights = [];
+    // Génère des vols factices autour des aéroports indiqués
+    function generateMockFlights(from, to, date, passengers) {
+      const carriers = ['AirDemo', 'ExpressAir', 'SkyCongo', 'Continental Lite'];
+      const basePrice = 100; // USD-like unit
+      const flights = [];
+      for (let i=0;i<6;i++){
+        const dep = new Date(date);
+        dep.setHours(6 + Math.floor(Math.random()*12), Math.floor(Math.random()*60));
+        const dur = 1 + Math.floor(Math.random()*6);
+        const arr = new Date(dep.getTime() + dur*60*60*1000);
+        const price = Math.round((basePrice + Math.random()*300) * passengers);
+        flights.push({
+          id: `${from}-${to}-${date}-${i}`,
+          carrier: carriers[i % carriers.length],
+          from, to,
+          dep: dep.toISOString(),
+          arr: arr.toISOString(),
+          duration: dur + 'h',
+          price
+        });
+      }
+      return flights;
+    }
+
+    const flightsListEl = document.getElementById('flightsList');
+    const bookingsListEl = document.getElementById('bookingsList');
+
+    function renderFlights(flights){
+      flightsListEl.innerHTML = '';
+      if (!flights.length) {
+        flightsListEl.innerHTML = '<div class="col-12">Aucun vol trouvé. Changez les paramètres et réessayez.</div>';
+        return;
+      }
+      for (const f of flights){
+        const col = document.createElement('div'); col.className = 'col-md-6 col-lg-4';
+        col.innerHTML = `
+          <div class="card flight-card h-100 shadow-sm">
+            <div class="card-body">
+              <h5 class="card-title mb-1">${f.carrier}</h5>
+              <p class="mb-1"><strong>${f.from}</strong> → <strong>${f.to}</strong></p>
+              <p class="mb-1 small">Départ: ${new Date(f.dep).toLocaleString()} • Durée: ${f.duration}</p>
+              <p class="mb-2"><strong>${f.price} USD</strong></p>
+              <button class="btn btn-outline-primary btn-sm" data-flight-id="${f.id}">Réserver</button>
+            </div>
+          </div>
+        `;
+        flightsListEl.appendChild(col);
+      }
+      // attache les handlers
+      flightsListEl.querySelectorAll('button[data-flight-id]').forEach(b=>{
+        b.addEventListener('click', e=>{
+          openBookingModal(e.currentTarget.dataset.flightId);
+        });
+      });
+    }
+
+    function openBookingModal(flightId){
+      document.getElementById('selectedFlightId').value = flightId;
+      // préremplir email/nom si trouvé dans le stockage local
+      const known = JSON.parse(localStorage.getItem('ar_user') || '{}');
+      if (known.name) document.getElementById('customerName').value = known.name;
+      if (known.email) document.getElementById('customerEmail').value = known.email;
+      if (known.phone) document.getElementById('customerPhone').value = known.phone;
+      const modal = new bootstrap.Modal(document.getElementById('bookModal'));
+      modal.show();
+    }
+
+    document.getElementById('searchBtn').addEventListener('click', ()=>{
+      const from = document.getElementById('from').value.trim();
+      const to = document.getElementById('to').value.trim();
+      const date = document.getElementById('date').value;
+      const passengers = parseInt(document.getElementById('passengers').value) || 1;
+      if (!from || !to || !date) return alert('Remplissez tous les champs de recherche');
+      const results = generateMockFlights(from, to, date, passengers);
+      // Mettre à jour le mock global si besoin
+      renderFlights(results);
+    });
+
+    document.getElementById('confirmBooking').addEventListener('click', ()=>{
+      const id = document.getElementById('selectedFlightId').value;
+      const name = document.getElementById('customerName').value.trim();
+      const email = document.getElementById('customerEmail').value.trim();
+      const phone = document.getElementById('customerPhone').value.trim();
+      if (!id || !name || !email) return alert('Nom et email requis');
+      // récupère le vol depuis l'affichage actuel
+      const cardBtn = document.querySelector(`[data-flight-id='${id}']`);
+      if (!cardBtn) return alert('Vol introuvable (rechargez la page et réessayez)');
+      // construit une réservation
+      const flightCard = cardBtn.closest('.card');
+      const flightTitle = flightCard.querySelector('.card-title').innerText;
+      const price = flightCard.querySelector('strong').innerText;
+      const booking = {
+        id: 'BK-' + Date.now(),
+        flightId: id,
+        carrier: flightTitle,
+        price,
+        name, email, phone,
+        date: new Date().toISOString()
+      };
+      // sauvegarde dans localStorage
+      const bookings = JSON.parse(localStorage.getItem('ar_bookings') || '[]');
+      bookings.push(booking);
+      localStorage.setItem('ar_bookings', JSON.stringify(bookings));
+      // sauvegarder les infos utilisateur pour préremplissage
+      localStorage.setItem('ar_user', JSON.stringify({name,email,phone}));
+      // fermer modal
+      const modalEl = document.getElementById('bookModal');
+      const modal = bootstrap.Modal.getInstance(modalEl);
+      modal.hide();
+      renderBookings();
+      alert('Réservation enregistrée localement (démonstration)');
+    });
+
+    function renderBookings(){
+      const bookings = JSON.parse(localStorage.getItem('ar_bookings') || '[]');
+      bookingsListEl.innerHTML = '';
+      if (!bookings.length) { bookingsListEl.innerHTML = '<div class="text-muted">Aucune réservation</div>'; return; }
+      for (const b of bookings){
+        const item = document.createElement('div');
+        item.className = 'list-group-item d-flex justify-content-between align-items-start';
+        item.innerHTML = `
+          <div>
+            <div class="fw-bold">${b.carrier} — ${b.id}</div>
+            <div class="small">${b.name} • ${b.email} • ${b.phone || '-'} • ${new Date(b.date).toLocaleString()}</div>
+          </div>
+          <div class="btn-group btn-group-sm" role="group">
+            <button class="btn btn-outline-secondary" data-action="download" data-id="${b.id}">Exporter</button>
+            <button class="btn btn-outline-danger" data-action="delete" data-id="${b.id}">Supprimer</button>
+          </div>
+        `;
+        bookingsListEl.appendChild(item);
+      }
+      bookingsListEl.querySelectorAll('button[data-action]').forEach(btn=>{
+        btn.addEventListener('click', e=>{
+          const id = e.currentTarget.dataset.id;
+          const action = e.currentTarget.dataset.action;
+          if (action === 'delete') return deleteBooking(id);
+          if (action === 'download') return downloadBooking(id);
+        });
+      });
+    }
+
+    function deleteBooking(id){
+      let bookings = JSON.parse(localStorage.getItem('ar_bookings') || '[]');
+      bookings = bookings.filter(b=>b.id !== id);
+      localStorage.setItem('ar_bookings', JSON.stringify(bookings));
+      renderBookings();
+    }
+
+    function downloadBooking(id){
+      const bookings = JSON.parse(localStorage.getItem('ar_bookings') || '[]');
+      const b = bookings.find(x=>x.id===id);
+      if (!b) return alert('Réservation introuvable');
+      const blob = new Blob([JSON.stringify(b, null, 2)], {type: 'application/json'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = `${b.id}.json`;
+      document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+    }
+
+    document.getElementById('clearStorage').addEventListener('click', ()=>{
+      if (!confirm('Effacer toutes les réservations locales ?')) return;
+      localStorage.removeItem('ar_bookings');
+      localStorage.removeItem('ar_user');
+      renderBookings();
+    });
+
+    // au chargement, afficher les réservations existantes
+    renderBookings();
+
+    // Pré-remplir la date d'aujourd'hui par défaut
+    (function setDefaultDate(){
+      const d = new Date();
+      const iso = d.toISOString().slice(0,10);
+      document.getElementById('date').value = iso;
+    })();
+  </script>
+</body>
+</html>
