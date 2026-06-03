@@ -1,0 +1,387 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Résultats de recherche - AirReserve</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root{ --accent: #ffb703; --card-bg: rgba(255,255,255,0.95) }
+    html,body{height:100%}
+    body {
+      font-family: 'Inter', system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+      background: linear-gradient(180deg,#0d3b66 0%, #0f4c81 45%, #1c5d99 100%);
+      color: #eef6ff;
+      -webkit-font-smoothing:antialiased;
+    }
+    .hero { padding: 3.5rem 0; }
+    .card { background: var(--card-bg); color: #0b2140; border: 0; border-radius: 10px }
+    .flight-card { transition: transform .12s ease; box-shadow: 0 6px 18px rgba(11,33,64,0.08); }
+    .flight-card:hover { transform: translateY(-6px); }
+    .logo { font-weight:700; letter-spacing:1px; color: #ffffff }
+    .navbar .nav-link{ color: rgba(255,255,255,0.9) }
+    .hero .display-6, .hero .lead { color: #eef6ff }
+    .feature-card { background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.12); color: #f8fafc; border-radius: 16px; min-height: 140px; }
+    .feature-card .feature-icon { font-size: 1.8rem; line-height: 1; }
+    .stats-bar { color: rgba(255,255,255,0.82); font-size: 0.95rem; }
+    .results-top { gap: 0.75rem; }
+    .booking-badge { display:inline-block; padding:0.25rem 0.55rem; background: rgba(255,183,3,0.15); color:#071427; border-radius:999px; font-size:0.8rem; }
+    .flight-card .card-title { color:#0f3561 }
+    .flight-card small { color:#63718d }
+    .flight-info { font-size:0.92rem; color:#52607c }
+    .flight-tag { margin-right:0.4rem; font-size:0.75rem; background: rgba(15,76,129,0.08); color:#0f4c81; border-radius: 8px; padding: 0.25rem 0.45rem; }
+    .btn-group .btn { min-width: 88px; }
+    footer { padding:1.5rem 0; text-align:center; color: rgba(255,255,255,0.75) }
+    @media (max-width:767px){ .hero{ padding:2rem 0 } }
+  </style>
+</head>
+<body>
+  <nav class="navbar navbar-expand-lg navbar-dark bg-transparent shadow-sm">
+    <div class="container">
+      <a class="navbar-brand logo" href="index.html">AirReserve</a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navmenu">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navmenu">
+        <ul class="navbar-nav ms-auto">
+          <li class="nav-item"><a class="nav-link" href="index.html">Nouvelle recherche</a></li>
+        </ul>
+      </div>
+    </div>
+  </nav>
+
+  <header class="hero">
+    <div class="container">
+      <div class="row align-items-center">
+        <div class="col-lg-7">
+          <h1 class="display-6">Vols disponibles</h1>
+          <p class="lead">Les résultats s’affichent ici après votre recherche.</p>
+          <div id="searchInfo" class="mt-3"></div>
+        </div>
+        <div class="col-lg-5">
+          <div class="card p-3 shadow-sm">
+            <form id="modifySearchForm" class="row g-2" method="get" action="results.html">
+              <div class="col-6">
+                <label class="form-label small">Départ</label>
+                <input id="from" name="from" class="form-control" placeholder="LUB" required>
+              </div>
+              <div class="col-6">
+                <label class="form-label small">Arrivée</label>
+                <input id="to" name="to" class="form-control" placeholder="KIN" required>
+              </div>
+              <div class="col-6">
+                <label class="form-label small">Date</label>
+                <input id="date" name="date" type="date" class="form-control" required>
+              </div>
+              <div class="col-6">
+                <label class="form-label small">Passagers</label>
+                <input id="passengers" name="passengers" type="number" min="1" value="1" class="form-control">
+              </div>
+              <div class="col-12 text-end">
+                <button class="btn btn-primary">Modifier</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="container mb-5">
+    <div id="noSearchMessage" class="alert alert-warning text-dark d-none" role="alert">
+      Aucun itinéraire n'a été fourni. Retournez à la page d'accueil pour lancer une recherche.
+    </div>
+
+    <section id="resultsSection" class="mb-4">
+      <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-3 results-top">
+        <div>
+          <h4 class="m-0">Options trouvées</h4>
+          <p class="small stats-bar mb-0">Trier et réserver votre vol.</p>
+        </div>
+        <div class="d-flex flex-wrap align-items-center gap-2">
+          <select id="sortSelect" class="form-select form-select-sm">
+            <option value="best">Trier par recommandation</option>
+            <option value="price">Prix le plus bas</option>
+            <option value="duration">Durée la plus courte</option>
+          </select>
+          <button id="clearStorage" type="button" class="btn btn-outline-secondary btn-sm">Effacer réservations locales</button>
+        </div>
+      </div>
+      <div id="resultsSummary" class="mb-3 stats-bar"></div>
+      <div id="flightsList" class="row gy-3"></div>
+    </section>
+
+    <section id="reservationsSection">
+      <h5>Mes réservations (stockées localement)</h5>
+      <div id="bookingsList" class="list-group"></div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="container">copyright© Kamaliro 2027 Airways.</div>
+  </footer>
+
+  <div class="modal fade" id="bookModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Réserver le vol</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+        </div>
+        <div class="modal-body">
+          <form id="bookingForm">
+            <input type="hidden" id="selectedFlightId">
+            <div class="mb-2">
+              <label class="form-label">Nom complet</label>
+              <input id="customerName" class="form-control" required>
+            </div>
+            <div class="mb-2">
+              <label class="form-label">Email</label>
+              <input id="customerEmail" type="email" class="form-control" required>
+            </div>
+            <div class="mb-2">
+              <label class="form-label">Téléphone</label>
+              <input id="customerPhone" class="form-control">
+            </div>
+            <div class="form-text mb-2">Donnée de démonstration — aucune vraie transaction.</div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button id="confirmBooking" type="button" class="btn btn-primary">Confirmer la réservation</button>
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    function getParam(name) {
+      return new URLSearchParams(window.location.search).get(name) || '';
+    }
+
+    function generateMockFlights(from, to, date, passengers) {
+      const carriers = ['AirDemo', 'ExpressAir', 'SkyCongo', 'Continental Lite'];
+      const basePrice = 100;
+      const flights = [];
+      for (let i = 0; i < 6; i++) {
+        const dep = new Date(date);
+        dep.setHours(6 + Math.floor(Math.random() * 12), Math.floor(Math.random() * 60));
+        const dur = 1 + Math.floor(Math.random() * 6);
+        const arr = new Date(dep.getTime() + dur * 60 * 60 * 1000);
+        const price = Math.round((basePrice + Math.random() * 300) * passengers);
+        const stops = Math.random() > 0.6 ? 1 : 0;
+        flights.push({
+          id: `${from}-${to}-${date}-${i}`,
+          carrier: carriers[i % carriers.length],
+          from, to,
+          dep: dep.toISOString(),
+          arr: arr.toISOString(),
+          duration: dur + 'h',
+          price,
+          stops,
+          baggage: stops ? '1 bagage' : '2 bagages',
+          classType: i % 2 === 0 ? 'Économique' : 'Premium Éco',
+          flightNumber: `AR${520 + i}`,
+          score: Math.random() * 10
+        });
+      }
+      return flights;
+    }
+
+    const flightsListEl = document.getElementById('flightsList');
+    const bookingsListEl = document.getElementById('bookingsList');
+    const sortSelect = document.getElementById('sortSelect');
+    const resultsSummary = document.getElementById('resultsSummary');
+    const searchInfo = document.getElementById('searchInfo');
+    const noSearchMessage = document.getElementById('noSearchMessage');
+    const resultsSection = document.getElementById('resultsSection');
+    const modifySearchForm = document.getElementById('modifySearchForm');
+    let currentResults = [];
+
+    function renderFlights(flights) {
+      flightsListEl.innerHTML = '';
+      if (!flights.length) {
+        flightsListEl.innerHTML = '<div class="col-12">Aucun vol trouvé. Changez les paramètres et réessayez.</div>';
+        return;
+      }
+      flights.forEach(f => {
+        const col = document.createElement('div');
+        col.className = 'col-md-6 col-lg-4';
+        col.innerHTML = `
+          <div class="card flight-card h-100 shadow-sm">
+            <div class="card-body">
+              <div class="d-flex justify-content-between align-items-start mb-2">
+                <div>
+                  <h5 class="card-title mb-1">${f.carrier}</h5>
+                  <span class="flight-tag">${f.flightNumber}</span>
+                  <span class="flight-tag">${f.classType}</span>
+                </div>
+                <span class="booking-badge">${f.baggage}</span>
+              </div>
+              <p class="mb-1"><strong>${f.from}</strong> → <strong>${f.to}</strong></p>
+              <p class="mb-1 flight-info">Départ: ${new Date(f.dep).toLocaleString()} • Arrivée: ${new Date(f.arr).toLocaleString()}</p>
+              <p class="mb-1 flight-info">Durée: ${f.duration} • Escales: ${f.stops}</p>
+              <p class="fs-5 fw-semibold mb-3">${f.price} USD</p>
+              <button type="button" class="btn btn-outline-primary btn-sm" data-flight-id="${f.id}">Réserver</button>
+            </div>
+          </div>
+        `;
+        flightsListEl.appendChild(col);
+      });
+      flightsListEl.querySelectorAll('button[data-flight-id]').forEach(btn => {
+        btn.addEventListener('click', e => openBookingModal(e.currentTarget.dataset.flightId));
+      });
+      updateResultsSummary(flights);
+    }
+
+    function updateResultsSummary(flights) {
+      if (!flights.length) {
+        resultsSummary.textContent = 'Aucun vol à afficher pour cet itinéraire.';
+        return;
+      }
+      const route = `${flights[0].from} → ${flights[0].to}`;
+      const nextDate = new Date(flights[0].dep).toLocaleDateString();
+      resultsSummary.textContent = `${flights.length} options affichées pour ${route} le ${nextDate}.`;
+    }
+
+    function sortResults() {
+      const mode = sortSelect.value;
+      if (mode === 'price') {
+        currentResults.sort((a, b) => a.price - b.price);
+      } else if (mode === 'duration') {
+        currentResults.sort((a, b) => parseInt(a.duration) - parseInt(b.duration));
+      } else {
+        currentResults.sort((a, b) => a.score - b.score);
+      }
+      renderFlights(currentResults);
+    }
+
+    function openBookingModal(flightId) {
+      document.getElementById('selectedFlightId').value = flightId;
+      const known = JSON.parse(localStorage.getItem('ar_user') || '{}');
+      if (known.name) document.getElementById('customerName').value = known.name;
+      if (known.email) document.getElementById('customerEmail').value = known.email;
+      if (known.phone) document.getElementById('customerPhone').value = known.phone;
+      const modal = new bootstrap.Modal(document.getElementById('bookModal'));
+      modal.show();
+    }
+
+    function renderBookings() {
+      const bookings = JSON.parse(localStorage.getItem('ar_bookings') || '[]');
+      bookingsListEl.innerHTML = '';
+      if (!bookings.length) {
+        bookingsListEl.innerHTML = '<div class="text-muted">Aucune réservation</div>';
+        return;
+      }
+      bookings.forEach(b => {
+        const item = document.createElement('div');
+        item.className = 'list-group-item d-flex justify-content-between align-items-start';
+        item.innerHTML = `
+          <div>
+            <div class="fw-bold">${b.carrier} — ${b.id}</div>
+            <div class="small">${b.name} • ${b.email} • ${b.phone || '-'} • ${new Date(b.date).toLocaleString()}</div>
+          </div>
+          <div class="btn-group btn-group-sm" role="group">
+            <button type="button" class="btn btn-outline-secondary" data-action="download" data-id="${b.id}">Exporter</button>
+            <button type="button" class="btn btn-outline-danger" data-action="delete" data-id="${b.id}">Supprimer</button>
+          </div>
+        `;
+        bookingsListEl.appendChild(item);
+      });
+      bookingsListEl.querySelectorAll('button[data-action]').forEach(btn => {
+        btn.addEventListener('click', e => {
+          const id = e.currentTarget.dataset.id;
+          const action = e.currentTarget.dataset.action;
+          if (action === 'delete') return deleteBooking(id);
+          if (action === 'download') return downloadBooking(id);
+        });
+      });
+    }
+
+    function deleteBooking(id) {
+      const bookings = JSON.parse(localStorage.getItem('ar_bookings') || '[]').filter(b => b.id !== id);
+      localStorage.setItem('ar_bookings', JSON.stringify(bookings));
+      renderBookings();
+    }
+
+    function downloadBooking(id) {
+      const bookings = JSON.parse(localStorage.getItem('ar_bookings') || '[]');
+      const booking = bookings.find(b => b.id === id);
+      if (!booking) return alert('Réservation introuvable');
+      const blob = new Blob([JSON.stringify(booking, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${booking.id}.json`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    }
+
+    function saveBooking() {
+      const id = document.getElementById('selectedFlightId').value;
+      const name = document.getElementById('customerName').value.trim();
+      const email = document.getElementById('customerEmail').value.trim();
+      const phone = document.getElementById('customerPhone').value.trim();
+      if (!id || !name || !email) return alert('Nom et email requis');
+      const flight = currentResults.find(item => item.id === id) || {};
+      const booking = {
+        id: 'BK-' + Date.now(),
+        flightId: id,
+        carrier: flight.carrier || 'Vol inconnu',
+        price: flight.price ? `${flight.price} USD` : 'N/A',
+        name,
+        email,
+        phone,
+        date: new Date().toISOString()
+      };
+      const bookings = JSON.parse(localStorage.getItem('ar_bookings') || '[]');
+      bookings.push(booking);
+      localStorage.setItem('ar_bookings', JSON.stringify(bookings));
+      localStorage.setItem('ar_user', JSON.stringify({ name, email, phone }));
+      const modalEl = document.getElementById('bookModal');
+      bootstrap.Modal.getInstance(modalEl).hide();
+      renderBookings();
+      alert('Réservation enregistrée localement (démonstration)');
+    }
+
+    function displaySearchInfo(from, to, date, passengers) {
+      searchInfo.innerHTML = `<div class="text-white-75">${from} → ${to} | ${new Date(date).toLocaleDateString()} | ${passengers} passager(s)</div>`;
+    }
+
+    function start() {
+      const from = getParam('from');
+      const to = getParam('to');
+      const date = getParam('date');
+      const passengers = parseInt(getParam('passengers'), 10) || 1;
+      if (!from || !to || !date) {
+        noSearchMessage.classList.remove('d-none');
+        resultsSection.classList.add('d-none');
+        return;
+      }
+      modifySearchForm.from.value = from;
+      modifySearchForm.to.value = to;
+      modifySearchForm.date.value = date;
+      modifySearchForm.passengers.value = passengers;
+      displaySearchInfo(from, to, date, passengers);
+      currentResults = generateMockFlights(from, to, date, passengers);
+      sortResults();
+      renderBookings();
+    }
+
+    sortSelect.addEventListener('change', sortResults);
+    document.getElementById('confirmBooking').addEventListener('click', saveBooking);
+    document.getElementById('clearStorage').addEventListener('click', () => {
+      if (!confirm('Effacer toutes les réservations locales ?')) return;
+      localStorage.removeItem('ar_bookings');
+      localStorage.removeItem('ar_user');
+      renderBookings();
+    });
+
+    start();
+  </script>
+</body>
+</html>
