@@ -162,7 +162,7 @@
     }
 
     function generateMockFlights(from, to, date, passengers) {
-      const carriers = ['AirDemo', 'ExpressAir', 'SkyCongo', 'Continental Lite'];
+      const carriers = ['ServeAir', 'CAA', 'SkyCongo', 'Congo Airways', 'Mont Gabaon', 'Busy bee', 'Air Congo', 'Ethiopian Airlines', 'Kenya Airways'];
       const basePrice = 100;
       const flights = [];
       for (let i = 0; i < 6; i++) {
@@ -345,7 +345,7 @@
       const modalEl = document.getElementById('bookModal');
       bootstrap.Modal.getInstance(modalEl).hide();
       renderBookings();
-      alert('Réservation enregistrée localement (démonstration)');
+      alert('Réservation enregistrée localement');
     }
 
     function displaySearchInfo(from, to, date, passengers) {
